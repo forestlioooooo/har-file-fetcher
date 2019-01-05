@@ -1,0 +1,26 @@
+{
+    "scripts": {
+        "start": "export DEBUG=har-file-fetcher:* && node ./fetcher.babel.js"
+    },
+    "bin": {
+        "fetch": "./cli.js"
+    },
+    "dependencies": {
+        "@babel/core": "7.0.0-beta.36",
+        "@babel/generator": "7.0.0-beta.36",
+        "@babel/node": "7.0.0-beta.36",
+        "@babel/polyfill": "7.0.0-beta.36",
+        "@babel/preset-env": "7.0.0-beta.36",
+        "@babel/preset-flow": "7.0.0-beta.36",
+        "@babel/preset-stage-2": "7.0.0-beta.36",
+        "@babel/register": "7.0.0-beta.36",
+        "bluebird": "^3.5.3",
+        "commander": "^2.19.0",
+        "debug": "^4.1.1",
+        "del": "^3.0.0",
+        "mkdirp": "^0.5.1",
+        "node-fetch": "^2.3.0",
+        "url": "^0.11.0",
+        "url-glob": "^1.0.3"
+    }
+}
