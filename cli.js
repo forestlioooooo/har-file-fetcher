@@ -1,4 +1,5 @@
 #!/usr/bin/env node
+process.env.DEBUG = 'har-file-fetcher:*';
 
 require('@babel/register');
 var program = require('commander');

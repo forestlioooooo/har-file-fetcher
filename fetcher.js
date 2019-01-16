@@ -1,5 +1,8 @@
 const {
     join,
+    dirname,
+    basename,
+    extname,
 } = require('path');
 const Promise = require('bluebird');
 const url = require('url');
@@ -7,6 +10,7 @@ const UrlGlob = require('url-glob');
 const del = require('del');
 
 const debug = require('debug')('har-file-fetcher:fetcher'),
+    debugwarn = require('debug')('har-file-fetcher:fetcher:warn'),
     debugerror = require('debug')('har-file-fetcher:fetcher:error');
 
 const filter = module.exports.filter = function(entries = [], glob) {
@@ -24,15 +28,23 @@ const {
     multip: downloadMultip,
 } = require('./downloader.js');
 
-const run = module.exports.run = async function(path, filterstr = '**', destpath = './dest') {
+const run = module.exports.run = async function(path, filterstr = '**', destpath) {
+    destpath = destpath || join(dirname(path), basename(path, extname(path)));
     debug('PATH\t:', path);
     debug('FILTER\t:', filterstr);
     debug('DEST\t:', destpath);
 
-    del.sync(join(destpath, './**'));
+    del.sync(join(destpath, './**'), {
+        force: true,
+    });
     const harObj = read(path);
-    const entries = filter(harObj.log.entries, new UrlGlob(filterstr || '**'));
-    await Promise.each(entries, async entry => {
+    let entries = harObj.log.entries || [];
+    entries = entries.filter(entry => entry && entry.request && entry.request.url && /http[s]?:\/\//.test(entry.request.url));
+    entries = filter(entries, new UrlGlob(filterstr || '**'));
+    let downloadCount = 0,
+        failCount = 0,
+        failUrls = [];
+    await Promise.each(entries, async(entry, index) => {
         let {
             url: _url,
         } = entry.request;
@@ -42,15 +54,28 @@ const run = module.exports.run = async function(path, filterstr = '**', destpath
             return;
         }
         const dest = join(destpath, _url.host.replace(/:/g, '-'), rpath);
-        mkdirp(dest);
+        try {
+            mkdirp(dest);
+        } catch (err) {
+            debugwarn(`${index+1}/${entries.length}`, `mkdirp ${dest} fail`);
+            failUrls.push(entry.request.url);
+            failCount++;
+            return;
+        }
         try {
             await downloadTo(entry, dest);
-            debug(rpath, '\t ->> ', dest)
+            debug(`${index+1}/${entries.length}`, rpath)
+            downloadCount++;
         } catch (err) {
-            debugerror(rpath, '\t ->> ', dest, 'FAILD')
-            console.error(err);
+            debugerror(`${index+1}/${entries.length}`, rpath)
+            debugerror(err);
+            failUrls.push(entry.request.url);
+            failCount++;
         }
     });
+    debug(`成功：${downloadCount} , 失败：${failCount}`);
+    debug('失败的URLs:%j', failUrls);
+    debug('失败的URLs:\n', '\n', failUrls.join('\n'));
 }
 
 // run('./汤姆猫糖果跑酷.har').catch(err => {
