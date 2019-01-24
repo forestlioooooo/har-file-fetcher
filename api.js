@@ -1,0 +1,1 @@
+module.exports.xhrMock = function(entry, dest) {};
